@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Допомога ЗСУ — Збори на військові цілі 2025</title>
+<!-- Підключення шрифтів для української кирилиці -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+<!-- Supabase JS клієнт -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root {
+    --bg: #e0e0d1;
+    --card: rgba(255, 255, 255, 0.95);
+    --primary: #2d3319;
+    --accent: #3d4624;
+    --text: #1a1a1a;
+    --gray: #444;
+    --shadow: 0 20px 40px rgba(45, 51, 25, 0.15);
+    --btn-bg: #228B22;
+    --btn-hover: #1e7b1e;
+  }
+  body.dark {
+    --bg: #0f172a;
+    --card: rgba(30, 27, 75, 0.9);
+    --text: #e2e8f0;
+    --gray: #94a3b8;
+    --primary: #9ca37f;
+    --accent: #7c855f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto', 'Open Sans', system-ui, sans-serif;
+    background: linear-gradient(135deg, #556b2f, #4b5320);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #sidebar {
+    width: 100%;
+    background: var(--card);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+    text-align: center;
+  }
+  #sidebar h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+  }
+  #sidebar p {
+    font-size: 1.1rem;
+    color: var(--gray);
+    margin-bottom: 2rem;
+    opacity: 0.9;
+  }
+  #sidebar button {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    padding: 1rem;
+    background: linear-gradient(to right, var(--primary), var(--accent));
+    color: white;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s;
+  }
+  #sidebar button:hover {
+    transform: translateY(-5px);
+  }
+  #main {
+    flex: 1;
+    padding: 2rem 1.5rem;
+  }
+  .header-title {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  .header-title h1 {
+    font-size: 2.8rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+  }
+  .header-title p {
+    font-size: 1.3rem;
+    color: var(--gray);
+    opacity: 0.9;
+  }
+  .post {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px);
+  }
+  .post h3 {
+    font-size: 1.7rem;
+    margin-bottom: 1.2rem;
+    color: var(--primary);
+  }
+  .post-content {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    white-space: pre-wrap;
+  }
+  .post-link {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: linear-gradient(to right, var(--primary), var(--accent));
+    color: white;
+    text-decoration: none;
+    border-radius: 16px;
+    font-weight: 600;
+    transition: transform 0.3s;
+    margin-bottom: 1rem;
+  }
+  .post-link:hover {
+    transform: translateY(-5px);
+  }
+  .share-btn {
+    display: block;
+    width: 100%;
+    padding: 1.2rem;
+    background: var(--btn-bg);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: all 0.3s;
+    margin-top: 1rem;
+  }
+  .share-btn:hover {
+    background: var(--btn-hover);
+    transform: translateY(-5px);
+  }
+  .delete-post-btn {
+    margin-top: 1rem;
+    background: #ef4444;
+    width: 100%;
+    display: none;
+    padding: 1rem;
+    border: none;
+    border-radius: 16px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .admin-visible .delete-post-btn {
+    display: block;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+  .modal-content {
+    background: var(--card);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 500px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+  }
+  .modal input, .modal textarea {
+    width: 100%;
+    padding: 14px;
+    margin: 12px 0;
+    border-radius: 16px;
+    border: 1px solid var(--gray);
+    background: white;
+    font-size: 1rem;
+  }
+  .modal button {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1.2rem;
+    background: linear-gradient(to right, var(--primary), var(--accent));
+    color: white;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .close-modal, .logout-btn {
+    background: #ef4444;
+  }
+  @media (min-width: 768px) {
+    body { flex-direction: row; }
+    #sidebar {
+      width: 280px;
+      height: 100vh;
+      position: fixed;
+      left: 0; top: 0;
+      padding: 2rem 1.5rem;
+    }
+    #main { margin-left: 280px; padding: 2rem 3rem; }
+    .header-title h1 { font-size: 3.2rem; }
+  }
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <h2>Допомога ЗСУ</h2>
+  <p>Збори на військові цілі та потреби</p>
+  <button onclick="openAdminModal()">Адмін-панель</button>
+</div>
+<div id="main">
+  <div class="header-title">
+    <h1>Допомога ЗСУ</h1>
+    <p>Збори на військові цілі та потреби</p>
+  </div>
+  <div id="posts-list"></div>
+</div>
+
+<div id="admin-modal" class="modal">
+  <div class="modal-content">
+    <div id="admin-login">
+      <h2>Вхід адміна</h2>
+      <input type="text" id="admin-login-input" placeholder="Логін">
+      <input type="password" id="admin-pass-input" placeholder="Пароль">
+      <button onclick="adminLogin()">Увійти</button>
+      <p id="admin-error" style="color:#ef4444;margin-top:1rem;"></p>
+    </div>
+    
+    <div id="admin-create" style="display:none;">
+      <h2>Створити пост</h2>
+      <input type="text" id="post-title" placeholder="Заголовок">
+      <textarea id="post-content" rows="6" placeholder="Зміст посту"></textarea>
+      <input type="text" id="post-link" placeholder="Посилання (наприклад, на донат)">
+      <button onclick="createPost()">Створити</button>
+      <button class="close-modal" onclick="closeAdminModal()">Закрити</button>
+      <button class="logout-btn" onclick="adminLogout()">Вийти з адмін-панелі</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Налаштування Supabase
+const supabaseUrl = 'https://epgodyfgugeidffmdpma.supabase.co';
+const supabaseAnonKey = 'sb_publishable_HdWb0yCtBMOlH4WYozmpTg_a_yVfeUt';
+
+const supabase = Supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+let isAdminLogged = false;
+const ADMIN_LOGIN = 'admin';
+const ADMIN_PASS = 'admin2025';
+
+const modal = document.getElementById('admin-modal');
+const postsList = document.getElementById('posts-list');
+
+modal.addEventListener('click', (e) => {
+  if (e.target === modal) closeAdminModal();
+});
+
+function openAdminModal() {
+  modal.style.display = 'flex';
+  document.getElementById('admin-login').style.display = isAdminLogged ? 'none' : 'block';
+  document.getElementById('admin-create').style.display = isAdminLogged ? 'block' : 'none';
+  document.getElementById('admin-error').textContent = '';
+}
+
+function closeAdminModal() {
+  modal.style.display = 'none';
+}
+
+function adminLogin() {
+  const login = document.getElementById('admin-login-input').value.trim();
+  const pass = document.getElementById('admin-pass-input').value.trim();
+  if (login === ADMIN_LOGIN && pass === ADMIN_PASS) {
+    isAdminLogged = true;
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-create').style.display = 'block';
+    document.getElementById('admin-error').textContent = '';
+    renderPosts(); // показати кнопки видалення
+  } else {
+    document.getElementById('admin-error').textContent = 'Неправильний логін або пароль!';
+  }
+}
+
+function adminLogout() {
+  isAdminLogged = false;
+  document.getElementById('admin-login').style.display = 'block';
+  document.getElementById('admin-create').style.display = 'none';
+  document.getElementById('admin-login-input').value = '';
+  document.getElementById('admin-pass-input').value = '';
+  renderPosts();
+}
+
+async function createPost() {
+  if (!isAdminLogged) return;
+  const title = document.getElementById('post-title').value.trim();
+  const content = document.getElementById('post-content').value.trim();
+  const link = document.getElementById('post-link').value.trim();
+  if (!title || !content) return alert('Заповніть заголовок та зміст!');
+
+  const { error } = await supabase
+    .from('posts')
+    .insert({ title, content, link });
+
+  if (error) {
+    alert('Помилка створення: ' + error.message);
+  } else {
+    alert('Пост створено!');
+    document.getElementById('post-title').value = '';
+    document.getElementById('post-content').value = '';
+    document.getElementById('post-link').value = '';
+  }
+}
+
+async function deletePost(postId) {
+  if (!isAdminLogged) return;
+  if (confirm('Ви впевнені, що хочете видалити цей пост?')) {
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId);
+
+    if (error) alert('Помилка видалення: ' + error.message);
+  }
+}
+
+function sharePost(postId) {
+  const url = location.href.split('?')[0] + '?post=' + postId;
+  navigator.clipboard.writeText(url);
+  alert('Посилання скопійовано в буфер обміну!\nПоділіться через Viber, Telegram чи інші месенджери.');
+  if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+    const viber = `viber://forward?text=${encodeURIComponent('Збір на ЗСУ: ' + url)}`;
+    const telegram = `tg://msg?text=${encodeURIComponent('Збір на ЗСУ: ' + url)}`;
+    window.open(viber, '_blank') || window.open(telegram, '_blank');
+  }
+}
+
+async function loadPosts() {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    postsList.innerHTML = '<p style="text-align:center;color:red;">Помилка завантаження: ' + error.message + '</p>';
+    return [];
+  }
+  return data || [];
+}
+
+async function renderPosts() {
+  const posts = await loadPosts();
+
+  postsList.innerHTML = '';
+  const urlParams = new URLSearchParams(location.search);
+  const singleId = urlParams.get('post');
+  const toShow = singleId ? posts.filter(p => p.id == singleId) : posts;
+
+  if (isAdminLogged) {
+    postsList.classList.add('admin-visible');
+  } else {
+    postsList.classList.remove('admin-visible');
+  }
+
+  if (toShow.length === 0) {
+    postsList.innerHTML = '<p style="text-align:center; color:var(--gray); font-size:1.4rem;">Постів ще немає. Адмін скоро додасть актуальні збори! 💪</p>';
+    return;
+  }
+
+  toShow.forEach(post => {
+    const linkHtml = post.link ? `<a href="${post.link}" target="_blank" class="post-link">Підтримати збір</a>` : '';
+
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `
+      <h3>${post.title}</h3>
+      <div class="post-content">${post.content.replace(/\n/g, '<br>')}</div>
+      ${linkHtml}
+      <button class="share-btn" onclick="sharePost(${post.id})">Поділитися збором</button>
+      <button class="delete-post-btn" onclick="deletePost(${post.id})">Видалити пост</button>
+    `;
+    postsList.appendChild(div);
+  });
+}
+
+// Реал-тайм підписка
+supabase
+  .channel('public:posts')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, payload => {
+    console.log('Зміна в базі:', payload);
+    renderPosts();
+  })
+  .subscribe();
+
+// Початкове завантаження
+renderPosts();
+</script>
+</body>
+</html>
